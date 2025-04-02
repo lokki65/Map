@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa con Firebase y Geolocalización</title>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getDatabase, ref, onChildAdded } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+    
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJNp7SynqR5widR2VJDLAAfG56xPcwChA",
+            authDomain: "ubicacion.firebaseapp.com",
+            databaseURL: "https://ubicacion.firebaseio.com",
+            projectId: "ubicacion",
+            storageBucket: "ubicacion.appspot.com",
+            messagingSenderId: "930942711467",
+            appId: "1:930942711467:android:36f427dfa94cc296c369ee"
+        };
+    
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+    
+        // Escuchar cambios en Firebase en tiempo real
+        const ubicacionRef = ref(database, 'ubicaciones/');
+        onChildAdded(ubicacionRef, (snapshot) => {
+            const ubicacion = snapshot.val();
+            console.log(ubicacion); // Ver los datos para depuración
+            actualizarUbicacionEnMapa(ubicacion.latitud, ubicacion.longitud);
+        });
+    </script>
+    
+    <!-- Google Maps -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDlaQMMVFA7YLiZRpwo9jLYuoGTZGCvaDk&callback=iniciarMapa" async defer></script>
+
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Mapa con Firebase y Geolocalización</h2>
+    <button onclick="obtenerUbicacion()">📍 Mi Ubicación</button>
+    <div id="map"></div>
+
+    <script>
+        let map, marcadorUsuario;
+        let ubicacionActual = { lat: -16.5000, lng: -68.1500 }; // Ubicación por defecto
+
+        // Función para inicializar el mapa
+        function iniciarMapa() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 12,
+                center: ubicacionActual
+            });
+        }
+
+        // Función para actualizar el mapa con la ubicación
+        function actualizarUbicacionEnMapa(lat, lng) {
+            const miUbicacion = { lat, lng };
+            map.setCenter(miUbicacion); // Ajusta el centro del mapa a la nueva ubicación
+            map.setZoom(18); // Aumenta el zoom para tener una vista más cercana
+
+            if (marcadorUsuario) {
+                marcadorUsuario.setMap(null); // Elimina el marcador anterior
+            }
+            
+            marcadorUsuario = new google.maps.Marker({
+                position: miUbicacion,
+                map: map,
+                title: "Ubicación Actualizada",
+                icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+            });
+        }
+
+        // Función para obtener la ubicación en tiempo real desde el navegador (solo para la web)
+        function obtenerUbicacion() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    let miUbicacion = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    // Actualizar el mapa con la ubicación del usuario
+                    map.setCenter(miUbicacion);
+                    map.setZoom(18); // Mayor zoom para más precisión
+
+                    if (marcadorUsuario) marcadorUsuario.setMap(null);
+                    marcadorUsuario = new google.maps.Marker({
+                        position: miUbicacion,
+                        map: map,
+                        title: "Mi Ubicación",
+                        icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                    });
+
+                }, function(error) {
+                    alert("Error obteniendo la ubicación: " + error.message);
+                }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+            } else {
+                alert("Tu navegador no soporta geolocalización.");
+            }
+        }
+    </script>
+
+</body>
+</html>
